@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Lender - Prediction Result</title>
+    <meta name="description" content="Check the instant credit scoring and loan approval prediction result.">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fa-solid fa-building-columns me-2"></i>SMART LENDER
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fa-solid fa-house me-1"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about"><i class="fa-solid fa-circle-info me-1"></i> About & Models</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Results Section -->
+    <section class="py-5 bg-light flex-grow-1">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 fade-in">
+                    
+                    {% if error %}
+                    <div class="alert alert-danger rounded-3 p-4 shadow-sm" role="alert">
+                        <h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation me-2"></i>Processing Error</h4>
+                        <p class="mb-0">{{ error }}</p>
+                        <hr>
+                        <a href="/predict" class="btn btn-secondary-custom btn-sm"><i class="fa-solid fa-arrow-left me-1"></i>Return to Form</a>
+                    </div>
+                    {% else %}
+
+                    <div class="card result-card">
+                        
+                        <!-- Status Header Banner -->
+                        <div class="status-banner {% if status == 'Approved' %}approved{% else %}rejected{% endif %}">
+                            <div class="status-icon">
+                                {% if status == 'Approved' %}
+                                <i class="fa-solid fa-check"></i>
+                                {% else %}
+                                <i class="fa-solid fa-xmark"></i>
+                                {% endif %}
+                            </div>
+                            <h2 class="fw-bold mb-1">Loan Eligibility: {{ status }}</h2>
+                            <p class="mb-0 opacity-75">
+                                {% if status == 'Approved' %}
+                                The applicant meets the underwriting criteria for approval.
+                                {% else %}
+                                The applicant does not meet standard credit risk criteria.
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Results Details Body -->
+                        <div class="card-body p-4 p-md-5 bg-white">
+                            <div class="row g-4 align-items-center mb-5">
+                                
+                                <!-- Probability Gauge -->
+                                <div class="col-md-6 text-center border-md-end border-light">
+                                    <div class="gauge-container">
+                                        <svg class="gauge-svg" width="180" height="180" viewBox="0 0 160 160">
+                                            <circle class="gauge-bg" cx="80" cy="80" r="70"></circle>
+                                            <circle class="gauge-fill {% if status == 'Approved' %}approved{% else %}rejected{% endif %}" cx="80" cy="80" r="70"></circle>
+                                        </svg>
+                                        <div class="gauge-text">
+                                            <div class="gauge-val" id="gauge-probability" data-probability="{{ probability }}">0%</div>
+                                            <div class="gauge-lbl">Probability</div>
+                                        </div>
+                                    </div>
+                                    <p class="small text-secondary mt-3 mb-0">Decision confidence based on model prediction probabilities.</p>
+                                </div>
+
+                                <!-- Risk Score -->
+                                <div class="col-md-6 text-center text-md-start px-md-4">
+                                    <h5 class="fw-bold text-secondary mb-2">Underwriting Parameters</h5>
+                                    
+                                    <div class="mb-3">
+                                        <span class="text-secondary small d-block">ASSESSMENT RISK LEVEL</span>
+                                        <span class="badge-risk {{ risk_class }} d-inline-block mt-1">
+                                            <i class="fa-solid {% if risk_level == 'Low' %}fa-circle-check{% elif risk_level == 'Medium' %}fa-triangle-exclamation{% else %}fa-circle-xmark{% endif %} me-1"></i>
+                                            {{ risk_level }} Risk
+                                        </span>
+                                    </div>
+                                    
+                                    <div>
+                                        <span class="text-secondary small d-block">CLASSIFICATION MODEL</span>
+                                        <strong class="text-primary"><i class="fa-solid fa-brain me-1"></i> Random Forest Ensemble</strong>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <span class="text-secondary small d-block">CREDIT RECORD CHECKS</span>
+                                        {% if applicant['Credit History'] == 'Good / Cleared' %}
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i>Passed verification</span>
+                                        {% else %}
+                                        <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Delinquent or missing file</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Applicant Details Table -->
+                            <h4 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-user-tie me-2"></i>Applicant Profile Summary</h4>
+                            <div class="table-responsive rounded-3 border">
+                                <table class="table table-striped summary-table mb-0">
+                                    <tbody>
+                                        {% for label, val in applicant.items() %}
+                                        <tr>
+                                            <td class="summary-label">{{ label }}</td>
+                                            <td class="summary-value">{{ val }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Back and Action Buttons -->
+                            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-between align-items-center">
+                                <a href="/predict" class="btn btn-secondary-custom w-100 w-sm-auto"><i class="fa-solid fa-arrow-left me-2"></i>New Application</a>
+                                <a href="/about" class="btn btn-primary-custom w-100 w-sm-auto"><i class="fa-solid fa-chart-bar me-2"></i>View Metrics</a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-white">
+        <div class="container">
+            <p class="mb-1 fw-bold">Smart Lender Underwriting Hub</p>
+            <p class="small mb-3 text-white-50">&copy; 2026 Smart Lender Inc. All rights reserved. Powered by scikit-learn & Flask.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/"><i class="fa-solid fa-house me-1"></i> Dashboard</a>
+                <span class="text-white-50">|</span>
+                <a href="/about"><i class="fa-solid fa-chart-column me-1"></i> Model Performance</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
